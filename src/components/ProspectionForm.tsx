@@ -40,8 +40,8 @@ export default function ProspectionForm() {
     setFormSubmitted(false);
     
     try {
-      // In a real app, replace with your actual n8n webhook URL
-      const webhookUrl = 'https://tu-flujo.n8n.cloud/webhook/prospeccion-ia';
+      // Updated webhook URL as requested
+      const webhookUrl = 'https://donwea01.app.n8n.cloud/webhook/10a4c8fa-52aa-4943-b6f0-1380e3813e1a';
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -163,7 +163,7 @@ export default function ProspectionForm() {
               </span>
             ) : (
               <span className="flex items-center">
-                Submit and run flow
+                Generar mensaje
                 <ArrowRight className="ml-2 h-4 w-4" />
               </span>
             )}
