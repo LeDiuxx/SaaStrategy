@@ -1,11 +1,8 @@
+
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { ArrowRight, Clipboard, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import ProspectionFormFields from './ProspectionFormFields';
+import MessageDisplay from './MessageDisplay';
 
 interface OutreachResponse {
   mensaje: string;
@@ -21,27 +18,6 @@ export default function ProspectionForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [formSubmitted, setFormSubmitted] = useState(false);
-
-  const isValidJSON = (str: string) => {
-    try {
-      JSON.parse(str);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const hasHTMLTags = (str: string) => {
-    return /<[a-z][\s\S]*>/i.test(str);
-  };
-
-  const sanitizeHTML = (html: string) => {
-    // Remove script tags and other potentially dangerous elements
-    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-               .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-               .replace(/javascript:/gi, '')
-               .replace(/on\w+="[^"]*"/gi, '');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,103 +76,6 @@ export default function ProspectionForm() {
     }
   };
 
-  const handleCopyMessage = () => {
-    // For HTML content, copy the text content without tags
-    const textContent = hasHTMLTags(message) 
-      ? new DOMParser().parseFromString(message, 'text/html').body.textContent || message
-      : message;
-    
-    navigator.clipboard.writeText(textContent);
-    toast({
-      title: "Copiado al portapapeles",
-      description: "El mensaje ha sido copiado correctamente."
-    });
-  };
-
-  const handleCopyAsExcel = () => {
-    try {
-      // Create a temporary DOM element to parse the HTML
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = message;
-      
-      // Find the table element
-      const table = tempDiv.querySelector('table');
-      
-      if (!table) {
-        toast({
-          title: "No se encontró tabla",
-          description: "El mensaje no contiene una tabla para copiar.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const rows = table.querySelectorAll('tr');
-      const tsvData: string[] = [];
-
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td, th');
-        const rowData: string[] = [];
-        
-        cells.forEach(cell => {
-          // Extract text content and clean it
-          const cellText = cell.textContent?.trim() || '';
-          // Escape tabs and newlines in cell content
-          const cleanText = cellText.replace(/\t/g, ' ').replace(/\n/g, ' ');
-          rowData.push(cleanText);
-        });
-        
-        // Join cells with tabs
-        tsvData.push(rowData.join('\t'));
-      });
-
-      // Join rows with newlines
-      const tsvString = tsvData.join('\n');
-      
-      // Copy to clipboard
-      navigator.clipboard.writeText(tsvString);
-      
-      toast({
-        title: "Tabla copiada",
-        description: "La tabla ha sido copiada al portapapeles en formato TSV."
-      });
-    } catch (error) {
-      console.error('Error copying table:', error);
-      toast({
-        title: "Error al copiar",
-        description: "No se pudo copiar la tabla. Intenta nuevamente.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const renderMessageContent = () => {
-    if (isValidJSON(message)) {
-      // Display JSON in a formatted code block
-      return (
-        <pre className="whitespace-pre-wrap font-mono text-sm overflow-x-auto">
-          {JSON.stringify(JSON.parse(message), null, 2)}
-        </pre>
-      );
-    } else if (hasHTMLTags(message)) {
-      // Render HTML content safely
-      return (
-        <div 
-          dangerouslySetInnerHTML={{ 
-            __html: sanitizeHTML(message) 
-          }} 
-        />
-      );
-    } else {
-      // Display plain text with preserved line breaks
-      return (
-        <div className="whitespace-pre-line">
-          {message}
-        </div>
-      );
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -211,107 +90,16 @@ export default function ProspectionForm() {
       <h1 className="text-2xl md:text-3xl font-medium mb-2 text-center">Diseñemos el próximo contacto en frío ❄️</h1>
       <p className="text-muted-foreground mb-8 text-center">Completa el formulario para generar un mensaje hiperpersonalizado</p>
       
-      <form onSubmit={handleSubmit} className="w-full space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="empresa_url">Ingresa el sitio web de tu empresa</Label>
-          <Input
-            id="empresa_url"
-            name="empresa_url"
-            placeholder="https://miempresa.com"
-            value={formData.empresa_url}
-            onChange={handleInputChange}
-            disabled={isLoading}
-            required
-            className="bg-secondary/50 border-secondary"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="linkedin_url">Ingresa la URL del perfil de LinkedIn a prospectar</Label>
-          <Input
-            id="linkedin_url"
-            name="linkedin_url"
-            placeholder="https://linkedin.com/in/prospecto"
-            value={formData.linkedin_url}
-            onChange={handleInputChange}
-            disabled={isLoading}
-            required
-            className="bg-secondary/50 border-secondary"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="canal">Elige el canal que utilizarás para tu prospección</Label>
-          <Select
-            value={formData.canal}
-            onValueChange={handleSelectChange}
-            disabled={isLoading}
-          >
-            <SelectTrigger id="canal" className="bg-secondary/50 border-secondary">
-              <SelectValue placeholder="Selecciona un canal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Correo">Correo</SelectItem>
-              <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-              <SelectItem value="LinkedIn DM">LinkedIn DM</SelectItem>
-              <SelectItem value="Llamada">Llamada</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="pt-4 flex justify-center">
-          <Button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full max-w-xs"
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generando tu mensaje en frío... 🧊
-              </span>
-            ) : (
-              <span className="flex items-center">
-                Generar mensaje
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </span>
-            )}
-          </Button>
-        </div>
-      </form>
+      <ProspectionFormFields
+        formData={formData}
+        isLoading={isLoading}
+        onInputChange={handleInputChange}
+        onSelectChange={handleSelectChange}
+        onSubmit={handleSubmit}
+      />
       
       {formSubmitted && message && (
-        <div className="mt-10 w-full">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-xl font-medium">Tu mensaje de prospección ✨</h2>
-            <div className="ml-auto flex justify-end mb-4 space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyMessage}
-                className="flex items-center"
-              >
-                <Clipboard className="mr-2 h-4 w-4" />
-                📋 Copiar mensaje
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCopyAsExcel}
-                className="flex items-center"
-              >
-                <Clipboard className="mr-2 h-4 w-4" />
-                📋 Copiar tabla
-              </Button>
-            </div>
-          </div>
-          <div 
-            className="p-6 rounded-lg font-sans font-medium overflow-auto"
-            style={{ backgroundColor: '#1F1F1F' }}
-          >
-            {renderMessageContent()}
-          </div>
-        </div>
+        <MessageDisplay message={message} />
       )}
     </div>
   );
