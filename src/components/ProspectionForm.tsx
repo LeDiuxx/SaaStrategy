@@ -61,7 +61,7 @@ export default function ProspectionForm() {
     setFormSubmitted(false);
     
     try {
-      const webhookUrl = 'https://donwea01.app.n8n.cloud/webhook/10a4c8fa-52aa-4943-b6f0-1380e3813e1a';
+      const webhookUrl = 'https://donwea01.app.n8n.cloud/webhook-test/saastrategy';
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
