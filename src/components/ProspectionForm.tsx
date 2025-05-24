@@ -23,6 +23,27 @@ export default function ProspectionForm() {
   const [message, setMessage] = useState('');
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  const isValidJSON = (str: string) => {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const hasHTMLTags = (str: string) => {
+    return /<[a-z][\s\S]*>/i.test(str);
+  };
+
+  const sanitizeHTML = (html: string) => {
+    // Remove script tags and other potentially dangerous elements
+    return html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+               .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+               .replace(/javascript:/gi, '')
+               .replace(/on\w+="[^"]*"/gi, '');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -40,8 +61,7 @@ export default function ProspectionForm() {
     setFormSubmitted(false);
     
     try {
-      // Updated webhook URL as requested
-      const webhookUrl = 'https://donwea01.app.n8n.cloud/webhook-test/saastrategy';
+      const webhookUrl = 'https://donwea01.app.n8n.cloud/webhook/10a4c8fa-52aa-4943-b6f0-1380e3813e1a';
       
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -51,17 +71,18 @@ export default function ProspectionForm() {
         body: JSON.stringify(formData),
       });
       
-      // For demo/testing, simulate a response with dummy data
-      // In a real app, replace this with the actual response processing
-      // const data = await response.json() as OutreachResponse;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      // Simulated response for demo purposes
-      const simulatedData = {
-        mensaje: `Hola [nombre],\n\nEspero que estés teniendo un excelente día. Mi nombre es Juan y trabajo en el departamento de ventas de ${new URL(formData.empresa_url).hostname.replace('www.', '').split('.')[0]}.\n\nHe estado siguiendo tu perfil en LinkedIn y me ha llamado la atención tu experiencia en [industria]. Creo que podríamos ayudarte a incrementar tus resultados de [área relevante] con nuestra solución.\n\n¿Tendríamos unos minutos esta semana para ver si podemos ayudarte?\n\nSaludos cordiales,\nJuan`
-      };
+      const data = await response.json() as OutreachResponse;
+      
+      if (!data.mensaje) {
+        throw new Error('La respuesta no contiene un mensaje válido');
+      }
 
       // Set message and update UI state
-      setMessage(simulatedData.mensaje);
+      setMessage(data.mensaje);
       setFormSubmitted(true);
       
       toast({
@@ -72,7 +93,7 @@ export default function ProspectionForm() {
       console.error('Error al enviar datos:', error);
       toast({
         title: "Error al procesar",
-        description: "No se pudo generar el mensaje. Intenta nuevamente.",
+        description: error instanceof Error ? error.message : "No se pudo generar el mensaje. Intenta nuevamente.",
         variant: "destructive"
       });
     } finally {
@@ -81,11 +102,43 @@ export default function ProspectionForm() {
   };
 
   const handleCopyMessage = () => {
-    navigator.clipboard.writeText(message);
+    // For HTML content, copy the text content without tags
+    const textContent = hasHTMLTags(message) 
+      ? new DOMParser().parseFromString(message, 'text/html').body.textContent || message
+      : message;
+    
+    navigator.clipboard.writeText(textContent);
     toast({
       title: "Copiado al portapapeles",
       description: "El mensaje ha sido copiado correctamente."
     });
+  };
+
+  const renderMessageContent = () => {
+    if (isValidJSON(message)) {
+      // Display JSON in a formatted code block
+      return (
+        <pre className="whitespace-pre-wrap font-mono text-sm overflow-x-auto">
+          {JSON.stringify(JSON.parse(message), null, 2)}
+        </pre>
+      );
+    } else if (hasHTMLTags(message)) {
+      // Render HTML content safely
+      return (
+        <div 
+          dangerouslySetInnerHTML={{ 
+            __html: sanitizeHTML(message) 
+          }} 
+        />
+      );
+    } else {
+      // Display plain text with preserved line breaks
+      return (
+        <div className="whitespace-pre-line">
+          {message}
+        </div>
+      );
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,11 +235,14 @@ export default function ProspectionForm() {
               className="flex items-center"
             >
               <Copy className="mr-2 h-4 w-4" />
-              Copiar mensaje
+              📋 Copiar mensaje
             </Button>
           </div>
-          <div className="bg-form-output p-6 rounded-lg whitespace-pre-line">
-            {message}
+          <div 
+            className="p-6 rounded-lg font-sans font-medium overflow-auto"
+            style={{ backgroundColor: '#1F1F1F' }}
+          >
+            {renderMessageContent()}
           </div>
         </div>
       )}
