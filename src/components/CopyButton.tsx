@@ -88,7 +88,7 @@ export default function CopyButton({ message }: CopyButtonProps) {
       className="flex items-center"
     >
       <Clipboard className="mr-2 h-4 w-4" />
-      📋 Copiar
+      Copiar
     </Button>
   );
 }
