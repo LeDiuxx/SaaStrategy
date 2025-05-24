@@ -1,7 +1,5 @@
-
 import React from 'react';
-import CopyMessageButton from './CopyMessageButton';
-import CopyTableButton from './CopyTableButton';
+import CopyButton from './CopyButton';
 
 interface MessageDisplayProps {
   message: string;
@@ -60,9 +58,8 @@ export default function MessageDisplay({ message }: MessageDisplayProps) {
     <div className="mt-10 w-full">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-medium">Tu mensaje de prospección ✨</h2>
-        <div className="ml-auto flex justify-end mb-4 space-x-2">
-          <CopyMessageButton message={message} />
-          <CopyTableButton message={message} />
+        <div className="ml-auto flex justify-end mb-4">
+          <CopyButton message={message} />
         </div>
       </div>
       <div 
