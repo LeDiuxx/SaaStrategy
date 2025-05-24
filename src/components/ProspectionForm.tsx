@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { ArrowRight, Copy, Loader2 } from "lucide-react";
+import { ArrowRight, Clipboard, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface OutreachResponse {
@@ -112,6 +111,63 @@ export default function ProspectionForm() {
       title: "Copiado al portapapeles",
       description: "El mensaje ha sido copiado correctamente."
     });
+  };
+
+  const handleCopyAsExcel = () => {
+    try {
+      // Create a temporary DOM element to parse the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = message;
+      
+      // Find the table element
+      const table = tempDiv.querySelector('table');
+      
+      if (!table) {
+        toast({
+          title: "No se encontró tabla",
+          description: "El mensaje no contiene una tabla para copiar.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const rows = table.querySelectorAll('tr');
+      const tsvData: string[] = [];
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td, th');
+        const rowData: string[] = [];
+        
+        cells.forEach(cell => {
+          // Extract text content and clean it
+          const cellText = cell.textContent?.trim() || '';
+          // Escape tabs and newlines in cell content
+          const cleanText = cellText.replace(/\t/g, ' ').replace(/\n/g, ' ');
+          rowData.push(cleanText);
+        });
+        
+        // Join cells with tabs
+        tsvData.push(rowData.join('\t'));
+      });
+
+      // Join rows with newlines
+      const tsvString = tsvData.join('\n');
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(tsvString);
+      
+      toast({
+        title: "Tabla copiada",
+        description: "La tabla ha sido copiada al portapapeles en formato TSV."
+      });
+    } catch (error) {
+      console.error('Error copying table:', error);
+      toast({
+        title: "Error al copiar",
+        description: "No se pudo copiar la tabla. Intenta nuevamente.",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderMessageContent = () => {
@@ -228,15 +284,26 @@ export default function ProspectionForm() {
         <div className="mt-10 w-full">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-xl font-medium">Tu mensaje de prospección ✨</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopyMessage}
-              className="flex items-center"
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              📋 Copiar mensaje
-            </Button>
+            <div className="ml-auto flex justify-end mb-4 space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyMessage}
+                className="flex items-center"
+              >
+                <Clipboard className="mr-2 h-4 w-4" />
+                📋 Copiar mensaje
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyAsExcel}
+                className="flex items-center"
+              >
+                <Clipboard className="mr-2 h-4 w-4" />
+                📋 Copiar tabla
+              </Button>
+            </div>
           </div>
           <div 
             className="p-6 rounded-lg font-sans font-medium overflow-auto"
